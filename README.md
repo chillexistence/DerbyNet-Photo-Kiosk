@@ -2,9 +2,17 @@
 
 A Raspberry Pi–based photo kiosk for Pinewood Derby events that automatically captures and uploads **racer photos and car photos** into DerbyNet using a barcode scanner.
 
+This project is a companion tool designed to work with the DerbyNet race management system:
+https://github.com/jeffpiazza/derbynet
+
 The system allows race staff to quickly photograph racers and cars without manual file handling. A barcode is scanned, the camera captures the image, the photo is automatically cropped, and the image is uploaded directly to DerbyNet.
 
 Designed for simplicity, reliability, and low cost, the Photo Kiosk runs entirely on a Raspberry Pi and requires minimal operator interaction.
+
+## Inspired By
+This project was inspired by the DerbyNet barcode photo capture workflow demonstrated here:
+https://www.youtube.com/watch?v=aR5vDUBemx4
+The goal was to extend that workflow into a self-contained Raspberry Pi kiosk that can run independently at photo stations.
 
 ---
 
@@ -272,6 +280,37 @@ We prioritize:
 - simplicity
 - ease of deployment
 - low hardware cost
+
+---
+
+## Real-World Use
+
+This kiosk system was developed while preparing for our pack’s Pinewood Derby.
+Although I am relatively new to Git and open-source development, the system
+was successfully used to run what ended up being our most efficient and
+smoothly run derby event so far.
+
+Using DerbyNet together with this kiosk allowed us to quickly capture racer
+and car photos with minimal effort during check-in and inspection. The process
+reduced manual work for volunteers and kept the photo station moving smoothly.
+
+While the project began as a solution for our own event, it was intentionally
+designed to support a wide range of DerbyNet deployments. Many features were
+built with the broader community in mind, including safeguards and error
+handling to help the kiosk recover gracefully from common issues such as
+network interruptions, camera failures, barcode scan errors, or DerbyNet
+connectivity problems.
+
+Many hours went into testing and debugging a wide range of scenarios that can
+occur during Derby events. Where possible the kiosk includes checks and
+recovery behavior so the system can continue operating with minimal volunteer
+intervention.
+
+Like any project, there is always room for improvement. The goal was to make
+sure the core functionality was reliable and ready for real events while
+keeping the system simple enough that other packs can deploy it easily.
+
+Contributions and improvements are welcome.
 
 ---
 
