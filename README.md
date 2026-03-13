@@ -138,6 +138,7 @@ Workflow:
 2. Print check-in passes containing barcodes.
 3. Scouts locate their pass.
 4. A helper scans the barcode while the racer stands on a marked **X on the floor**.
+5. After a successful upload the kiosk displays and announces the racer’s name.
 
 Because some younger scouts cannot yet spell or write well, we have an older scout help **write the car name on the check-in tag**, which is entered into DerbyNet later.
 
@@ -159,6 +160,7 @@ Process:
 2. The box floor contains **wheel cutouts** so cars are always placed in the same location.
 3. The barcode is scanned.
 4. The kiosk captures and uploads the car photo.
+5. After a successful upload the kiosk displays and announces the racer’s name. During car photo mode the system also announces the car name along with a randomly selected fun or inspirational racing phrase.
 
 This ensures consistent car photos across all racers.
 
