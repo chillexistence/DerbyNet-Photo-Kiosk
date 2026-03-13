@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Crop Preview</title>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto;
+  background:#3773C4;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  color:white;
+}
+
+/* HEADER */
+.header{
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  background:#1f2937;
+  font-size:20px;
+}
+
+/* CROP BADGE */
+.crop-badge{
+  position:fixed;
+  top:15px;
+  right:20px;
+  background:rgba(0,0,0,0.65);
+  color:white;
+  padding:8px 16px;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:1px;
+}
+
+/* MAIN CONTENT */
+.container{
+  flex:1;
+  display:flex;
+  gap:40px;
+  padding:20px 60px;
+  align-items:center;
+  justify-content:center;
+}
+
+.frame{
+  flex:1;
+  border-radius:20px;
+  border:5px solid rgba(255,255,255,0.25);
+  background:black;
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.frame img{
+  max-height:50vh;
+  max-width:100%;
+  object-fit:contain;
+  border-radius:16px;
+  background:#111;
+}
+
+.label{
+  margin-top:10px;
+  font-size:20px;
+  font-weight:900;
+  background:white;
+  color:black;
+  padding:6px 20px;
+  border-radius:10px;
+}
+
+/* EXIT BAR */
+.exit-bar{
+  height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#065f46;
+  font-size:22px;
+  font-weight:900;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  TEST PREVIEW — Returning in 45 seconds
+</div>
+
+<div id="cropBadge" class="crop-badge">
+  CROP 7%
+</div>
+
+<div class="container">
+
+  <div class="frame">
+    <img src="/photostation/latest_original.jpg"
+         onerror="this.src='https://via.placeholder.com/600x400?text=Original+Not+Captured'">
+    <div class="label">ORIGINAL</div>
+  </div>
+
+  <div class="frame">
+    <img src="/photostation/latest_cropped.jpg"
+         onerror="this.src='https://via.placeholder.com/600x400?text=Cropped+Not+Captured'">
+    <div class="label">CROPPED</div>
+  </div>
+
+</div>
+
+<div class="exit-bar" onclick="exitNow()">
+  TAP HERE TO RETURN IMMEDIATELY
+</div>
+
+<script>
+/* Load current crop value */
+fetch('/photostation/api/get-config.php')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("cropBadge").innerText =
+      "CONFIG CROP " + data.crop + "%";
+  })
+  .catch(()=>{
+    document.getElementById("cropBadge").innerText =
+      "CONFIG CROP ?";
+  });
+
+/* Auto return after 45 seconds */
+let timer = setTimeout(()=>{
+  window.location.href="/photostation/test-crop.html";
+},45000);
+
+/* Manual exit */
+function exitNow(){
+  clearTimeout(timer);
+  window.location.href="/photostation/test-crop.html";
+}
+</script>
+
+</body>
+</html>

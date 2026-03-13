@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280">
+  <title>Network Error</title>
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto;background:
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 25%, rgba(0,0,0,0) 60%),
+        radial-gradient(circle at 50% 120%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.45) 100%),
+        #3773C4;display:flex;flex-direction:column;height:100vh;overflow:hidden;text-align:center;color:white;}
+    .content{flex:1;display:flex;align-items:center;justify-content:center;}
+    .panel{background:white;border-radius:20px;padding:50px 100px;max-width:900px;}
+    .message{font-size:42px;font-weight:900;color:black;line-height:1.3;}
+    .status-bar{height:70px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;background:#7f1d1d;color:white;user-select:none;}
+
+    /* Admin overlay */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;}
+    .overlay.show{display:flex;}
+    .admin{background:#fff;color:#111;border-radius:18px;padding:28px 34px;min-width:520px;box-shadow:0 18px 60px rgba(0,0,0,.45);text-align:left;}
+    .admin h2{margin:0 0 14px 0;font-size:26px;}
+    .btnrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;}
+    .btn{border:0;border-radius:12px;padding:14px 18px;font-size:18px;font-weight:800;cursor:pointer;}
+    .btn-danger{background:#b91c1c;color:#fff;}
+    .btn-primary{background:#1d4ed8;color:#fff;}
+    .btn-ghost{background:#e5e7eb;color:#111;}
+    .hint{font-size:15px;color:#444;margin-top:8px;}
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div class="panel">
+      <div class="message">NETWORK DISCONNECTED<br>CHECK WIFI CONNECTION</div>
+      <div class="hint" style="color:#111;margin-top:18px;">
+        Hold the red ERROR bar to open admin controls.
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">ERROR</div>
+
+  <div class="overlay" id="overlay">
+    <div class="admin">
+      <h2>Admin Controls</h2>
+      <div>Use these if the kiosk is stuck on this screen.</div>
+      <div class="btnrow">
+        <button class="btn btn-danger" id="btnClose">Close Browser</button>
+        <button class="btn btn-primary" id="btnLauncher">Go to Launcher</button>
+        <button class="btn btn-ghost" id="btnDismiss">Dismiss</button>
+      </div>
+      <div class="hint">Close Browser calls <code>/photostation/api/killchrome.php</code>.</div>
+    </div>
+  </div>
+
+<script>
+  const statusBar = document.getElementById("statusBar");
+  const overlay = document.getElementById("overlay");
+  const messageEl = document.querySelector(".message");
+  let holdTimer = null;
+
+  let cfgPromise = null;
+
+  function getConfig() {
+    if (!cfgPromise) {
+      cfgPromise = fetch("/photostation/api/get-config.php", { cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error("Config fetch failed: " + r.status);
+          return r.json();
+        });
+    }
+    return cfgPromise;
+  }
+
+  function normalizeBaseUrl(raw) {
+    return String(raw || "")
+      .trim()
+      .replace(/^["']|["']$/g, "")   // strip wrapping quotes
+      .replace(/\/index\.php$/i, "") // strip trailing /index.php
+      .replace(/\/+$/, "");          // strip trailing slash(es)
+  }
+
+  async function derbyNetReachable(url, timeoutMs = 5000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      await fetch(url, {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller.signal
+      });
+      return true;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+	function getActionUrl(cfg) {
+	  const base = normalizeBaseUrl(cfg.BASE_URL || cfg.base_url || "");
+	  if (!base) throw new Error("Missing BASE_URL in config");
+
+	  const u = new URL(base);   // throws if BASE_URL is not absolute
+	  u.search = "";
+	  u.hash = "";
+	  u.pathname = u.pathname.replace(/\/+$/, "") + "/action.php";
+	  return u.toString();
+	}
+
+	async function checkOnline() {
+	  try {
+		const cfg = await getConfig();
+		const testUrl = getActionUrl(cfg);
+		const ok = await derbyNetReachable(testUrl, 5000);
+
+		if (ok) {
+		  window.location.replace("/launcher.html");
+		}
+	  } catch (e) {
+		messageEl.innerHTML = "CONFIGURATION ERROR<br>CHECK BASE_URL";
+		statusBar.textContent = "CONFIG ERROR";
+	  }
+	}
+
+  checkOnline();
+  setInterval(checkOnline, 20000);
+
+  function openAdmin() { overlay.classList.add("show"); }
+  function closeAdmin() { overlay.classList.remove("show"); }
+
+  function startHold() {
+    holdTimer = setTimeout(openAdmin, 1500);
+  }
+
+  function endHold() {
+    if (holdTimer) clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+
+  statusBar.addEventListener("mousedown", startHold);
+  statusBar.addEventListener("mouseup", endHold);
+  statusBar.addEventListener("mouseleave", endHold);
+  statusBar.addEventListener("touchstart", startHold, { passive: true });
+  statusBar.addEventListener("touchend", endHold);
+
+  document.getElementById("btnDismiss").onclick = closeAdmin;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeAdmin();
+  });
+
+  document.getElementById("btnLauncher").onclick = () => {
+    window.location.href = "/launcher.html";
+  };
+
+  document.getElementById("btnClose").onclick = () => {
+    fetch("/photostation/api/killchrome.php?ts=" + Date.now(), { cache: "no-store" })
+      .catch(() => {})
+      .finally(() => setTimeout(() => {}, 250));
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAdmin();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Photo Station</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+        background: #3773c4;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        text-align: center;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* was center */
+        align-items: center;
+        padding: 0vh 2vw; /* was 4vh 4vw */
+      }
+
+      .logo img {
+        max-height: 30vh;
+        margin-top: 1vh;
+        margin-bottom: 2vh;
+        cursor: pointer;
+      }
+
+      .panel {
+        background: #fff;
+        border-radius: 2vh;
+        padding: 3vh 5vw; /* was 6vh 8vw */
+        max-width: 90vw;
+      }
+
+      .instructions {
+        font-size: 6vh;
+        font-weight: 900;
+        line-height: 1.15;
+        color: #000;
+      }
+
+      /* make the white panel behave like a fixed “card” */
+      #panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1.5vh;
+      }
+
+      .instruction-img {
+        width: min(85vw, 1000px);
+        max-height: 36vh;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .photo-frame {
+        border-radius: 20px;
+        border: 5px solid rgba(255, 255, 255, 0.25);
+        background: #000;
+
+        /* 95% of available area above status bar */
+        width: 95vw;
+        height: calc((100vh - 8vh) * 0.95);
+
+        /* center it */
+        margin: 0 auto;
+
+        /* padding so the border isn't tight */
+        padding: 10px;
+        box-sizing: border-box;
+        display: none;
+	position: relative;   /* ADD THIS */
+      }
+
+      .photo-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* cover  fills frame, minimal empty space */
+        border-radius: 14px;
+        display: block;
+      }
+
+	.pass-overlay {
+	  position: absolute;
+	  top: 10px;
+	  left: 10px;
+	  width: 45%;
+	  max-width: 400px;
+ 	  aspect-ratio: 2.92 / 1;   /* ADD THIS */
+	  background-image: url('/photostation/assets/ready_badge.png');
+	  background-size: contain;
+	  background-repeat: no-repeat;
+	  background-position: left;
+	  opacity: 0.9;
+	  display: none;
+	  pointer-events: none;
+	  filter: drop-shadow(0 10px 25px rgba(0,0,0,0.45))
+        	drop-shadow(0 0 15px rgba(255,255,255,0.4)); /* optional */
+
+	}
+	.racer-name {
+	  position: absolute;
+	  bottom: 2%;
+	  left: 50%;
+	  transform: translateX(-50%);
+	  background: rgba(0,0,0,0.75);
+	  color: #fff;
+	  padding: 1vh 4vw;
+	  border-radius: 2vh;
+	  font-size: 4.5vh;
+	  font-weight: 900;
+	  max-width: 90%;
+	  text-align: center;
+	}
+      .status-bar {
+        height: 8vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3vh;
+        font-weight: 900;
+        color: #fff;
+        background: #065f46;
+      }
+
+      .status-busy {
+        background: #92400e;
+      }
+      .status-error {
+        background: #7f1d1d;
+      }
+      .status-success {
+        background: #065f46;
+      }
+
+      .flash {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 14vh;
+        font-weight: 900;
+        background: rgba(0, 255, 0, 0.95);
+        color: #003300;
+        z-index: 9999;
+      }
+
+      .version-tag {
+        position: fixed;
+        bottom: 1vh;
+	padding: 4px 8px;
+        right: 1vw;
+        font-size: 1.6vh;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        pointer-events: auto;
+      }
+
+      #cropValue::before {
+        content: none;
+      }
+
+      .crop-percentage {
+        position: fixed;
+        bottom: 1vh;
+        left: 1vw;
+        font-size: 1.8vh;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 5px;
+      }
+	.auto-pass-indicator {
+	  margin-left: 8px;
+	  font-weight: 700;
+	  letter-spacing: 0.03em;
+	  display:inline-block;
+	}
+    </style>
+  </head>
+
+  <body>
+    <div class="flash" id="flash">✓ UPLOADED</div>
+
+    <div class="content">
+      <div class="logo" id="adminLogo">
+        <img
+          src="/photostation/assets/logo.png"
+          alt="Photo Station"
+          onerror="this.style.display='none'"
+        />
+      </div>
+
+      <div class="panel" id="panel">
+        <img
+          id="instructionImg"
+          class="instruction-img"
+          src="/photostation/assets/CarMode_PlaceCar.png"
+          alt="Place car, then scan barcode"
+        />
+        <div class="instructions" id="message">PLACE YOUR CAR<br />THEN SCAN BARCODE</div>
+      </div>
+
+      <div class="photo-frame" id="photoFrame">
+        <img id="photo" src="" alt="Captured photo" />
+	<div id="passOverlay" class="pass-overlay"></div>
+	<div class="racer-name" id="racerName"></div>
+      </div>
+    </div>
+
+    <div id="cropPercentage" class="crop-percentage">
+      CROP: <span id="cropValue">?</span>%
+      <span id="autoPassStatus" class="auto-pass-indicator"></span>
+    </div>
+
+    <div class="status-bar" id="statusBar">READY</div>
+    <div class="version-tag" id="version"></div>
+
+    <script>
+      // On load, clear any prior status
+      window.addEventListener("load", () => {
+        fetch("api/clear_status.php").catch(() => {});
+      });
+
+      let lastStatus = "";
+      let resetTimer = null;
+      let configErrorActive = false;
+
+      // Triple-tap logo → open crop test page
+      let tapCount = 0;
+      let tapTimer = null;
+
+      document.getElementById("adminLogo").addEventListener("pointerdown", () => {
+        tapCount++;
+
+        if (tapCount === 1) {
+          tapTimer = setTimeout(() => {
+            tapCount = 0;
+          }, 2000);
+        }
+
+        if (tapCount === 3) {
+          clearTimeout(tapTimer);
+          tapCount = 0;
+          window.location.href = "/photostation/test-crop.html";
+        }
+      });
+
+      function setBar(kind, text) {
+        const bar = document.getElementById("statusBar");
+        bar.className = `status-bar ${kind || ""}`.trim();
+        bar.textContent = text;
+      }
+
+      function setInstructionImage(src) {
+        const img = document.getElementById("instructionImg");
+        if (!img) return;
+        img.src = src;
+        img.style.display = "block";
+      }
+
+
+
+  function showReady(photoType) {
+    document.getElementById("photoFrame").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    document.getElementById("adminLogo").style.display = "block";
+
+    const msg = document.getElementById("message");
+    const img = document.getElementById("instructionImg");
+
+    if (photoType === "head") {
+      msg.innerHTML = "STAND FOR PHOTO<br />THEN SCAN BARCODE";
+      if (img) {
+        img.src = "/photostation/assets/RacerMode_Stand.png";
+        img.style.display = "block";
+      }
+    } else {
+      msg.innerHTML = "PLACE YOUR CAR<br />THEN SCAN BARCODE";
+      if (img) {
+        img.src = "/photostation/assets/CarMode_PlaceCar.png";
+        img.style.display = "block";
+      }
+    }
+
+    setBar("", "READY");
+  }
+
+
+
+
+
+
+
+      function showBusy() {
+        document.getElementById("message").innerHTML = "CAPTURING PHOTO...<br />UPLOADING...";
+        setInstructionImage("/photostation/assets/CaptureUpload.png");
+        setBar("status-busy", "BUSY");
+      }
+
+      function showError(messageHtml) {
+        document.getElementById("message").innerHTML = messageHtml;
+        setBar("status-error", "ERROR");
+      }
+
+      function showSuccess(photoUrl,racerName) {
+        document.getElementById("adminLogo").style.display = "none";
+        document.getElementById("panel").style.display = "none";
+        document.getElementById("photoFrame").style.display = "block";
+
+	const nameDiv = document.getElementById("racerName");
+
+	if (racerName && racerName.trim() !== "") {
+	  nameDiv.textContent = racerName.trim();
+	  nameDiv.style.display = "block";
+	} else {
+	  nameDiv.textContent = "";
+	  nameDiv.style.display = "none";
+	}
+
+
+        if (photoUrl) {
+          const sep = photoUrl.includes("?") ? "&" : "?";
+          document.getElementById("photo").src = `${photoUrl}${sep}cb=${Date.now()}`;
+        }
+
+	// Check pass flag
+	fetch('/photostation/pass_flag.txt?cb=' + Date.now())
+	  .then(r => r.text())
+	  .then(flag => {
+	    const overlay = document.getElementById("passOverlay");
+	    const isCarMode = (window.__photoType === "car");
+	    const passed = (flag.trim() === "1");
+
+	    if (passed && isCarMode) {
+	      overlay.style.display = "block";
+	    } else {
+	      overlay.style.display = "none";
+	    }
+	  });
+
+        const flash = document.getElementById("flash");
+        flash.style.display = "flex";
+        setTimeout(() => {
+          flash.style.display = "none";
+        }, 2000);
+
+        setBar("status-success", "SUCCESS — THANK YOU");
+
+        if (resetTimer) clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+	  nameDiv.style.display = "none";
+	  // clear backend status so refresh won't show old SUCCESS
+	  fetch("/photostation/api/clear_status.php").catch(() => {});
+          showReady(window.__photoType || "car");
+        }, 12500);
+      }
+
+      async function tick() {
+        let s = "";
+        try {
+          s = (
+            await fetch(`/photostation/status.txt?cb=${Date.now()}`).then((r) => r.text())
+          ).trim();
+        } catch {
+          // ignore
+        }
+
+        if (!s) s = "READY";
+        if (s === lastStatus) return;
+        lastStatus = s;
+
+
+	// Countdown states
+	if (s === "3..." || s === "2..." || s === "1...") {
+	  // hide text (image already says SMILE)
+	  // document.getElementById("message").innerHTML = "&nbsp;";
+	  document.getElementById("message").innerHTML = s;
+
+	  if (s === "3...") setInstructionImage("/photostation/assets/RacerMode_Smile3.png");
+	  if (s === "2...") setInstructionImage("/photostation/assets/RacerMode_Smile2.png");
+	  if (s === "1...") setInstructionImage("/photostation/assets/RacerMode_Smile1.png");
+
+	  setBar("status-busy", "GET READY");
+	  return;
+	}
+
+        // Busy
+        if (s === "CAPTURING PHOTO..." || s === "UPLOADING...") {
+          showBusy();
+          return;
+        }
+
+        // Error cases
+		if (s.startsWith("CONFIG ERROR")) {
+          configErrorActive = true;
+		  setInstructionImage("/photostation/assets/NetworkError.png");
+		  showError("CONFIGURATION ERROR<br />BASE_URL is invalid:<br />Update /opt/photostation/config.conf");
+		  setBar("status-error", "CONFIG ERROR");
+		  return;
+		}
+
+        if (s.startsWith("NETWORK DISCONNECTED")) {
+		  setInstructionImage("/photostation/assets/NetworkError.png");
+          showError("NETWORK DISCONNECTED<br />CHECK WIFI");
+          return;
+        }
+
+        if (s.startsWith("LOGIN FAILED")) {
+          setInstructionImage("/photostation/assets/LoginFailed.png");
+          showError("LOGIN FAILED<br />SEE COORDINATOR");
+          return;
+        }
+		if (s.startsWith("RACER")) {
+		  setInstructionImage("/photostation/assets/UnknownRacer.png");
+		  showError(s + "<br />PLEASE RESCAN BARCODE");
+		  return;
+		}
+        if (s.startsWith("UPLOAD FAILED")) {
+		  setInstructionImage("/photostation/assets/UploadFailed.png");
+          showError("UPLOAD FAILED<br />PLEASE RESCAN BARCODE");
+          return;
+        }
+
+        if (s === "CAMERA ERROR") {
+          setInstructionImage("/photostation/assets/CameraError.png");
+          showError("CAMERA ERROR<br />CHECK CAMERA CONNECTION");
+          return;
+        }
+
+        // Success
+        if (s === "Done") {
+     
+		let name = "";
+		try {
+		    name = (await fetch('/photostation/scout_name.txt?cb=' + Date.now()).then(r => r.text())).trim();
+		} catch (e) {}
+
+	     let url = "";
+          try {
+            url = (
+              await fetch(`/photostation/hosted_url.txt?cb=${Date.now()}`).then((r) =>
+                r.text()
+              )
+            ).trim();
+          } catch {
+            // ignore
+          }
+          showSuccess(url,name);
+          return;
+        }
+
+        // Default: ready
+        showReady(window.__photoType || "car");
+      }
+
+      // Poll status
+      setInterval(tick, 500);
+      tick();
+
+      // Double-click version tag → kill chrome
+      document.addEventListener("DOMContentLoaded", () => {
+        const version = document.getElementById("version");
+        if (!version) return;
+
+        let lastTap = 0;
+        version.addEventListener("click", () => {
+          const now = Date.now();
+          if (now - lastTap < 500) {
+            fetch("api/killchrome.php").catch(() => {});
+          }
+          lastTap = now;
+        });
+      });
+
+      // Load config (crop + photo_type)
+		 window.addEventListener("load", () => {
+		  fetch("api/get-config.php")
+			.then((response) => response.json())
+			.then((data) => {
+
+			  document.getElementById("version").textContent = "Engine " + data.version;
+			  document.getElementById("cropValue").textContent = data.crop;
+
+			  const passStatus = document.getElementById("autoPassStatus");
+
+			  if (data.photo_type === "car") {
+				if (data.auto_pass == 1) {
+				  passStatus.textContent = " | 🟢 AUTO PASSED";
+				} else {
+				  passStatus.textContent = " | 🔴 MANUAL PASSED";
+				}
+			  } else {
+				passStatus.textContent = "";
+			  }
+
+			  window.__photoType = data.photo_type;
+
+			  // Only show READY if there is no error
+			  if (!configErrorActive) {
+				showReady(window.__photoType);
+			  }
+
+			})
+			.catch((err) => {
+			  console.error("Failed to fetch config data:", err);
+			  if (!configErrorActive) {
+				window.__photoType = "car";
+				showReady("car");
+			  }
+			});
+		});
+	  
+	  // -------- BARCODE SCANNER SUPPORT --------
+		let buffer = "";
+		let scanTimer = null;
+
+		document.addEventListener("keydown", function(e){
+
+			if (e.key === "Shift" || e.key === "Control" || e.key === "Alt") return;
+
+			if (scanTimer) clearTimeout(scanTimer);
+			scanTimer = setTimeout(() => buffer = "", 200);
+
+			if (e.key === "Enter") {
+
+				let code = buffer.replace(/\.$/, "");
+
+				if (code === "PWDCarPassed1") setAutoPass(1);
+				if (code === "PWDCarPassed0") setAutoPass(0);
+				if (code === "PWDClose") {
+			   window.location.href = "/photostation/api/killchrome.php";
+			}
+
+				buffer = "";
+				return;
+			}
+
+			if (e.key.length === 1) buffer += e.key;
+
+		});
+		
+		function setAutoPass(value) {
+			fetch("/photostation/api/set-auto-pass.php?value=" + value)
+				.then(() => {
+					const el = document.getElementById("autoPassStatus");
+					if (el) {
+						el.textContent = value == 1
+							? " | 🟢 AUTO PASSED"
+							: " | 🔴 MANUAL PASSED";
+					}
+				});
+		}
+		
+    </script>
+  </body>
+</html>

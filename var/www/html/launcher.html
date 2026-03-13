@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mode Select</title>
+<style>
+body{
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 25%, rgba(0,0,0,0) 60%),
+    radial-gradient(circle at 50% 120%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.45) 100%),
+    #3773C4;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  text-align:center;
+  color:white;
+}
+.content{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:34px;
+}
+.logo img{ max-height:340px; }
+button{
+  font-size:34px;
+  padding:22px 60px;
+  border-radius:20px;
+  border:none;
+  cursor:pointer;
+  font-weight:900;
+  width:560px;
+}
+.car{ background:#16a34a; color:white; }
+.racer{ background:#7c3aed; color:white; }
+.kiosk{ background:#2563eb; color:white; }
+.footer{
+  height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  background:#1f2937;
+}
+</style>
+</head>
+<body>
+<input id="scannerInput" autofocus style="position:absolute;opacity:0;">
+<div class="content">
+  <div class="logo"><img src="/photostation/assets/logo.png" onerror="this.style.display='none'"></div>
+  <button class="car" onclick="setMode('car')">CAR PHOTO</button>
+  <button class="racer" onclick="setMode('head')">RACER PHOTO</button>
+  <button class="kiosk" onclick="goKiosk()">DERBYNET DISPLAY</button>
+</div>
+<div class="footer">Auto starting DerbyNet display in 90 seconds...</div>
+<script>
+// -------- BARCODE SCANNER SUPPORT --------
+let buffer = "";
+let scanTimer = null;
+
+document.addEventListener("keydown", function(e){
+
+    if (e.key === "Shift" || e.key === "Control" || e.key === "Alt") return;
+
+    if (scanTimer) clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => buffer = "", 200);
+
+    if (e.key === "Enter") {
+
+        let code = buffer.replace(/\.$/, "");
+
+        if (code === "PWDRacer") setMode("head");
+        if (code === "PWDCar") setMode("car");
+        if (code === "PWDDerbyNet") goKiosk();
+        if (code === "PWDClose") {
+	   window.location.href = "/photostation/api/killchrome.php";
+	}
+
+        buffer = "";
+        return;
+    }
+
+    if (e.key.length === 1) buffer += e.key;
+
+});
+
+  const ERROR_URL = "/photostation/network-error.html";
+
+  // Cache config so we don't hit get-config.php every 25s
+  let cfgPromise = null;
+  function getConfig() {
+    if (!cfgPromise) {
+      cfgPromise = fetch("/photostation/api/get-config.php", { cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error("Config fetch failed: " + r.status);
+          return r.json();
+        });
+    }
+    return cfgPromise;
+  }
+
+  // Build the kiosk URL from config.
+  // Supports either:
+  //   cfg.KIOSK_URL (full URL), OR cfg.base_url (base path) + /kiosk.php
+	const KIOSK_PATH = "/kiosk.php";
+
+	function getKioskUrl(cfg) {
+	  // Support either key so you don’t get bitten by case
+	  const base = (cfg.BASE_URL || cfg.base_url || "").replace(/\/+$/, "");
+	  if (!base) throw new Error("Missing BASE_URL in config response");
+	  return base + KIOSK_PATH;
+	}  
+
+  // Use kiosk URL for reachability check (adds ping=1 safely)
+function getTestUrl(cfg) {
+  const u = new URL(getKioskUrl(cfg));
+  u.searchParams.set("ping", "1");
+  return u.toString();
+}
+
+  async function derbyNetReachable(url, timeoutMs = 5000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      // no-cors: resolves if network/TLS/DNS works; rejects on real network failures
+      await fetch(url, {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function checkOnline() {
+    try {
+      const cfg = await getConfig();
+      const testUrl = getTestUrl(cfg);
+
+      const ok = await derbyNetReachable(testUrl, 5000);
+      if (!ok) window.location.replace(ERROR_URL);
+    } catch (e) {
+      // If config can't be loaded, treat it as an error condition too
+      window.location.replace(ERROR_URL);
+    }
+  }
+
+  async function goKiosk() {
+    clearTimeout(timer);
+    try {
+      const cfg = await getConfig();
+      window.location.href = getKioskUrl(cfg);
+    } catch (e) {
+      window.location.replace(ERROR_URL);
+    }
+  }
+
+  // check on load and every 25s
+  checkOnline();
+  setInterval(checkOnline, 25000);
+
+  let timer = setTimeout(() => { goKiosk(); }, 90000);
+
+  function setMode(t) {
+    clearTimeout(timer);
+    fetch("/photostation/api/set-photo-type.php?type=" + encodeURIComponent(t))
+      .then(() => (window.location.href = "/photostation/index.html"))
+      .catch(() => (window.location.href = "/photostation/index.html"));
+  }
+</script>
+</body>
+</html>

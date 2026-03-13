@@ -1,0 +1,10 @@
+Installing:
+
+#####################################################################################
+# Use this on Windows from PowerShell to copy the zip & install to the Pi:
+# scp "C:\path\to\photostation_v3.1.1.zip" admin@PI_IP:/home/admin/
+# scp "C:\path\to\photostation_install.sh" admin@PI_IP:/home/admin/
+# Then run from SSH connected to the Pi:
+# chmod +x /home/admin/photostation_install.sh
+# sudo bash /home/admin/photostation_install.sh "/home/admin/photostation_v3.1.1.zip"
+#####################################################################################

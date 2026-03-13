@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Photostation
+Comment=Launch Photostation Kiosk
+Exec=/home/admin/start-photostation.sh
+Icon=chromium-browser
+Terminal=false
+Type=Application
+Categories=Utility;
+

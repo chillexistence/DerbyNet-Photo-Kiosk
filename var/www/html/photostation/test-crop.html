@@ -1,0 +1,119 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=1280">
+<title>Admin Mode</title>
+<style>
+body{margin:0;font-family:system-ui,Segoe UI,Roboto;background:#1f2937;color:white;height:100vh;display:flex;flex-direction:column;}
+.header{height:80px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;background:#b91c1c;}
+.container{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;}
+.crop-control{display:flex;align-items:center;gap:40px;}
+button{font-size:36px;padding:20px 40px;border-radius:12px;border:none;cursor:pointer;}
+.minus,.plus{background:#f59e0b;color:black;}
+.primary{background:#2563eb;color:white;}
+.success{background:#16a34a;color:white;}
+.value{font-size:64px;font-weight:900;}
+</style></head>
+<body>
+<div class="header">TEST CROP MODE — NO UPLOAD</div>
+<div class="container">
+  <div class="crop-control">
+    <button class="minus" onclick="adjust(-2)">−</button>
+    <div class="value" id="val">92%</div>
+    <button class="plus" onclick="adjust(2)">+</button>
+  </div>
+  <button class="primary" onclick="shot()">TAKE TEST SHOT</button>
+  <button class="success" onclick="saveExit()">SAVE & EXIT TEST MODE</button>
+</div>
+<!-- Added -->
+
+<div style="display:flex; align-items:center; gap:30px; margin-top:30px;">
+  <div style="font-size:28px; font-weight:900;">Auto Pass on Car Photo</div>
+  <button id="autoPassBtn" onclick="toggleAutoPass()" class="primary"></button>
+</div>
+
+<!-- End Add -->
+
+<script>
+let crop = 92;
+
+function loadInitialCrop() {
+
+  const saved = localStorage.getItem('cropPercentage');
+
+  if (saved) {
+      crop = parseInt(saved);
+      updateCropUI();
+      return;
+  }
+
+	fetch('/photostation/api/get-config.php', {cache:'no-store'})
+	  .then(r => r.json())
+	  .then(cfg => {
+
+		  if (cfg.crop !== undefined) {
+			  crop = parseInt(cfg.crop);
+		  }
+
+		  localStorage.setItem('cropPercentage', crop);
+		  updateCropUI();
+
+	  })
+	  .catch(() => {
+		  updateCropUI();
+	  });
+
+}
+
+function updateCropUI() {
+  document.getElementById('val').innerText = crop + '%';
+}
+
+function adjust(a){
+  crop += a;
+  if(crop<20) crop=20;
+  if(crop>100) crop=100;
+  document.getElementById('val').innerText = crop + '%';
+
+// Save the new crop percentage to localStorage
+  localStorage.setItem('cropPercentage', crop);
+}
+function shot(){
+  fetch('/photostation/api/test-shot.php?crop='+crop).then(()=>{
+    window.location.href='/photostation/test-preview.html';
+  });
+}
+function saveExit(){
+  localStorage.removeItem('cropPercentage');
+  fetch('/photostation/api/save-crop.php?crop='+crop).then(()=>{
+    window.location.href='/photostation/index.html';
+  });
+}
+let autoPass = 0;
+
+// Load current config
+fetch('/photostation/api/get-config.php')
+  .then(r => r.json())
+  .then(data => {
+      autoPass = parseInt(data.auto_pass || 0);
+      updateButton();
+  });
+
+function updateButton() {
+    const btn = document.getElementById('autoPassBtn');
+    if (autoPass === 1) {
+        btn.textContent = "ENABLED";
+        btn.className = "success";
+    } else {
+        btn.textContent = "DISABLED";
+        btn.className = "minus";
+    }
+}
+
+function toggleAutoPass() {
+    autoPass = autoPass === 1 ? 0 : 1;
+
+    fetch('/photostation/api/set-auto-pass.php?value=' + autoPass)
+        .then(() => updateButton());
+}
+loadInitialCrop();
+</script>
+</body></html>
