@@ -29,7 +29,8 @@ Typical workflow:
 5. The camera captures the photo.
 6. The image is automatically cropped.
 7. The photo is uploaded to DerbyNet.
-8. The kiosk resets and waits for the next racer.
+8. Kiosk shows the uploaded image on DerbyNet and racer's name & car name.
+9. The kiosk resets and waits for the next racer.
 
 The entire process typically takes **10–20 seconds per racer**.
 
@@ -138,7 +139,7 @@ Workflow:
 2. Print check-in passes containing barcodes.
 3. Scouts locate their pass.
 4. A helper scans the barcode while the racer stands on a marked **X on the floor**.
-5. After a successful upload the kiosk displays and announces the racer’s name.
+5. After a successful upload the kiosk displays the uploaded image and racers name and announces the racer’s name.
 
 Because some younger scouts cannot yet spell or write well, we have an older scout help **write the car name on the check-in tag**, which is entered into DerbyNet later.
 
@@ -160,7 +161,7 @@ Process:
 2. The box floor contains **wheel cutouts** so cars are always placed in the same location.
 3. The barcode is scanned.
 4. The kiosk captures and uploads the car photo.
-5. After a successful upload the kiosk displays and announces the racer’s name. During car photo mode the system also announces the car name along with a randomly selected fun or inspirational racing phrase.
+5. After a successful upload the kiosk displays the uploaded image and racers name and announces the racer’s name. During car photo mode the system also announces the car name along with a randomly selected fun or inspirational racing phrase.
 
 This ensures consistent car photos across all racers.
 
@@ -178,7 +179,7 @@ After booting the Pi automatically redirects to the DerbyNet display page after 
 
 While in **Racer Mode** or **Car Mode**, an admin panel can be accessed.
 
-**Triple-tap the event logo** to open the admin page.
+**Triple-tap the event logo** to open the admin page.  (event logo is downloaded from DerbyNet instance)
 
 Admin options include:
 
@@ -191,7 +192,7 @@ Auto Pass is typically used during car photos because the car has already passed
 
 # Barcode Control Mode
 
-The system can be operated entirely using barcodes without touching the screen.
+The system can be operated entirely using barcodes without touching the screen. (with the exception of setting crop %)
 
 ## Mode Selection Barcodes
 
@@ -249,7 +250,7 @@ All photo management is handled by DerbyNet.
 
 # Why This Exists
 
-Many Pinewood Derby events want racer photos in DerbyNet, but capturing them manually is slow and error-prone.
+Many Pinewood Derby events want racer photos in DerbyNet, but capturing them manually is slow and error-prone, or recalling which picture goes with which racer.
 
 This kiosk makes photo capture:
 
@@ -282,6 +283,7 @@ We prioritize:
 - simplicity
 - ease of deployment
 - low hardware cost
+- racer's name is prefixed to all pictures taken for easier downloading after the fact and knowing who's who.
 
 ---
 
